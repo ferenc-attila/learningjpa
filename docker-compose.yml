@@ -1,0 +1,11 @@
+version: '3.9'
+
+services:
+  employees_db_server:
+    image: mysql:latest
+    restart: on-failure
+    environment:
+      MYSQL_DATABASE: mysql
+      MYSQL_ROOT_PASSWORD: mysql
+    ports:
+      - "3306:3306"
