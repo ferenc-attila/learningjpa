@@ -20,7 +20,6 @@ public class ProjectDao {
     }
 
 
-
     public Project findProjectById(Long id) {
         EntityManager entityManager = entityManagerFactory.createEntityManager();
         Project project = entityManager.find(Project.class, id);
@@ -31,7 +30,7 @@ public class ProjectDao {
     public Project findProjectByIdWithEmployees(Long id) {
         EntityManager entityManager = entityManagerFactory.createEntityManager();
         Project project = entityManager.createQuery("select p from Project p join fetch p.employees where p.id = :id",
-                Project.class)
+                        Project.class)
                 .setParameter("id", id)
                 .getSingleResult();
         entityManager.close();

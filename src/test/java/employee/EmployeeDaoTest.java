@@ -7,6 +7,7 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,11 +19,14 @@ class EmployeeDaoTest {
 
     EmployeeDao employeeDao;
 
+    ParkingPlaceDao parkingPlaceDao;
+
 
     @BeforeEach
     void init() {
         EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("pu");
         employeeDao = new EmployeeDao(entityManagerFactory);
+        parkingPlaceDao = new ParkingPlaceDao(entityManagerFactory);
     }
 
     @Test
@@ -82,7 +86,7 @@ class EmployeeDaoTest {
         Employee employee = employeeDao.findEmployeeById(12L);
 //        Employee employee = employeeDao.findEmployeeById("x", 12L);
 
-        assertEquals(null, employee);
+        assertNull(employee);
     }
 
     @Test
@@ -107,7 +111,7 @@ class EmployeeDaoTest {
         Employee modifiedEmployee = employeeDao.findEmployeeById(employee.getId());
 
         assertEquals("John Doe", modifiedEmployee.getName());
-        assertFalse(employee == modifiedEmployee);
+        assertNotSame(employee, modifiedEmployee);
     }
 
     @Test
@@ -142,8 +146,8 @@ class EmployeeDaoTest {
     @Test
     void vacationsTest() {
         Employee employee = new Employee("John Doe");
-        employee.setVacationBookings(Set.of(new VacationEntry(LocalDate.of(2018,1,1), 4),
-                new VacationEntry(LocalDate.of(2018,2,10), 2)));
+        employee.setVacationBookings(Set.of(new VacationEntry(LocalDate.of(2018, 1, 1), 4),
+                new VacationEntry(LocalDate.of(2018, 2, 10), 2)));
         employeeDao.saveEmployee(employee);
         Employee anotherEmployee = employeeDao.findEmployeeByIdWithVacations(employee.getId());
         System.out.println(anotherEmployee.getVacationBookings());
@@ -251,5 +255,77 @@ class EmployeeDaoTest {
 
         Employee employee = employeeDao.findEmployeeByName("John Doe");
         assertEquals("John Doe", employee.getName());
+    }
+
+    @Test
+    void testPaging() {
+        for (int i = 100; i < 300; i++) {
+            Employee employee = new Employee("John Doe" + i);
+            employeeDao.saveEmployee(employee);
+        }
+        List<Employee> employees = employeeDao.listEmployees(50, 20);
+        assertEquals("John Doe150", employees.get(0).getName());
+        assertEquals(20, employees.size());
+    }
+
+    @Test
+    void findParkingPlaceByNameTest() {
+        Employee employee = new Employee("John Doe");
+        ParkingPlace parkingPlace = new ParkingPlace(101);
+        parkingPlaceDao.saveParkingPlace(parkingPlace);
+        employee.setParkingPlace(parkingPlace);
+        employeeDao.saveEmployee(employee);
+        int number = employeeDao.findParkingPlaceNumberByEmployeeName("John Doe");
+        assertEquals(101, number);
+    }
+
+    @Test
+    void baseDataTest() {
+        Employee john = new Employee("John Doe");
+        Employee jack = new Employee("Jack Doe");
+        employeeDao.saveEmployee(john);
+        employeeDao.saveEmployee(jack);
+
+        List<Object[]> listOfBaseData = employeeDao.listEmployeeBaseData();
+        assertEquals(2, listOfBaseData.size());
+        assertEquals("Jack Doe", listOfBaseData.get(1)[1]);
+    }
+
+    @Test
+    void baseDataDTOTest() {
+        Employee john = new Employee("John Doe");
+        Employee jack = new Employee("Jack Doe");
+        employeeDao.saveEmployee(john);
+        employeeDao.saveEmployee(jack);
+
+        List<EmployeeBaseDataDTO> listOfBaseData = employeeDao.listEmployeeBaseDataDTO();
+        assertEquals(2, listOfBaseData.size());
+        assertEquals("Jack Doe", listOfBaseData.get(0).getName());
+    }
+
+    @Test
+    void updateToTypeTest() {
+        employeeDao.saveEmployee(new Employee("John Doe", Employee.EmployeeType.FULL_TIME, LocalDate.of(1980, 1, 1)));
+        employeeDao.saveEmployee(new Employee("Jack Doe", Employee.EmployeeType.FULL_TIME, LocalDate.of(1990, 1, 1)));
+        employeeDao.saveEmployee(new Employee("Jane Doe", Employee.EmployeeType.FULL_TIME, LocalDate.of(2000, 1, 1)));
+
+        employeeDao.updateToType(LocalDate.of(1985, 1, 1), Employee.EmployeeType.HALF_TIME);
+
+        List<Employee> employees = employeeDao.listEmployees();
+        assertEquals(Employee.EmployeeType.HALF_TIME, employees.get(0).getEmployeeType());
+        assertEquals(Employee.EmployeeType.FULL_TIME, employees.get(2).getEmployeeType());
+    }
+
+    @Test
+    void deleteWithoutTypeTest() {
+        employeeDao.saveEmployee(new Employee("John Doe", Employee.EmployeeType.FULL_TIME, LocalDate.of(1980, 1, 1)));
+        employeeDao.saveEmployee(new Employee("Jack Doe", null, LocalDate.of(1990, 1, 1)));
+        employeeDao.saveEmployee(new Employee("Jane Doe", Employee.EmployeeType.FULL_TIME, LocalDate.of(2000, 1, 1)));
+
+        employeeDao.deleteWithoutType();
+
+        List<Employee> employees = employeeDao.listEmployees();
+        assertEquals(2, employees.size());
+        assertEquals("John Doe", employees.get(1).getName());
     }
 }
