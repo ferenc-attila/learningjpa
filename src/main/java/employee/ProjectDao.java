@@ -29,7 +29,7 @@ public class ProjectDao {
 
     public Project findProjectByIdWithEmployees(Long id) {
         EntityManager entityManager = entityManagerFactory.createEntityManager();
-        Project project = entityManager.createQuery("select p from Project p join fetch p.employees where p.id = :id",
+        Project project = entityManager.createQuery("select distinct p from Project p left join fetch p.employees where p.id = :id",
                         Project.class)
                 .setParameter("id", id)
                 .getSingleResult();
